@@ -142,11 +142,176 @@ function jsonOk(res: ServerResponse, body: unknown): void {
  * 支持 CDATA 和普通文本两种形式。
  */
 function extractXmlTag(xml: string, tag: string): string | undefined {
-  // 匹配 <Tag><![CDATA[内容]]></Tag> 或 <Tag>内容</Tag>
-  const re = new RegExp(`<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>|<${tag}>([\\s\\S]*?)</${tag}>`);
-  const m = xml.match(re);
+  if (!xml || !tag) return undefined;
+  const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)</${escapedTag}>`, "i");
+  const m = re.exec(xml);
   if (!m) return undefined;
-  return m[1] ?? m[2] ?? undefined;
+
+  const body = m[1] ?? "";
+  const cdata = /^<!\[CDATA\[([\s\S]*?)\]\]>$/i.exec(body.trim());
+  if (cdata) return cdata[1] ?? "";
+
+  return body;
+}
+
+function extractXmlTagAll(xml: string, tag: string): string[] {
+  if (!xml || !tag) return [];
+  const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(`<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)</${escapedTag}>`, "gi");
+  const out: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const body = m[1] ?? "";
+    const cdata = /^<!\[CDATA\[([\s\S]*?)\]\]>$/i.exec(body.trim());
+    out.push(cdata ? (cdata[1] ?? "") : body);
+  }
+  return out;
+}
+
+function pickFirstNonEmpty(...values: Array<string | undefined>): string {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return "";
+}
+
+function parseXmlTextPayload(xml: string): { content: string } | undefined {
+  const textBlock = extractXmlTag(xml, "Text") ?? "";
+  const content = pickFirstNonEmpty(
+    extractXmlTag(textBlock, "Content"),
+    extractXmlTag(xml, "Content")
+  );
+  if (!content) return undefined;
+  return { content };
+}
+
+function parseXmlVoicePayload(xml: string): Record<string, unknown> | undefined {
+  const voiceBlock = extractXmlTag(xml, "Voice") ?? "";
+  const content = pickFirstNonEmpty(
+    extractXmlTag(voiceBlock, "Content"),
+    extractXmlTag(voiceBlock, "Recognition"),
+    extractXmlTag(xml, "Recognition"),
+    extractXmlTag(xml, "Content")
+  );
+  const url = pickFirstNonEmpty(
+    extractXmlTag(voiceBlock, "Url"),
+    extractXmlTag(voiceBlock, "VoiceUrl"),
+    extractXmlTag(xml, "VoiceUrl")
+  );
+  const mediaId = pickFirstNonEmpty(
+    extractXmlTag(voiceBlock, "MediaId"),
+    extractXmlTag(xml, "MediaId")
+  );
+
+  if (!content && !url && !mediaId) return undefined;
+
+  const voice: Record<string, unknown> = {};
+  if (content) voice.content = content;
+  if (url) voice.url = url;
+  if (mediaId) voice.media_id = mediaId;
+  return voice;
+}
+
+function parseXmlImagePayload(xml: string): Record<string, unknown> | undefined {
+  const imageBlock = extractXmlTag(xml, "Image") ?? "";
+  const url = pickFirstNonEmpty(
+    extractXmlTag(imageBlock, "Url"),
+    extractXmlTag(imageBlock, "PicUrl"),
+    extractXmlTag(xml, "PicUrl"),
+    extractXmlTag(xml, "Url")
+  );
+  const mediaId = pickFirstNonEmpty(
+    extractXmlTag(imageBlock, "MediaId"),
+    extractXmlTag(xml, "MediaId")
+  );
+
+  if (!url && !mediaId) return undefined;
+
+  const image: Record<string, unknown> = {};
+  if (url) image.url = url;
+  if (mediaId) image.media_id = mediaId;
+  return image;
+}
+
+function parseXmlFilePayload(xml: string): Record<string, unknown> | undefined {
+  const fileBlock = extractXmlTag(xml, "File") ?? "";
+  const url = pickFirstNonEmpty(
+    extractXmlTag(fileBlock, "Url"),
+    extractXmlTag(fileBlock, "FileUrl"),
+    extractXmlTag(xml, "FileUrl"),
+    extractXmlTag(xml, "Url")
+  );
+  const fileName = pickFirstNonEmpty(
+    extractXmlTag(fileBlock, "FileName"),
+    extractXmlTag(fileBlock, "Name"),
+    extractXmlTag(xml, "FileName")
+  );
+  const mediaId = pickFirstNonEmpty(
+    extractXmlTag(fileBlock, "MediaId"),
+    extractXmlTag(xml, "MediaId")
+  );
+
+  if (!url && !fileName && !mediaId) return undefined;
+
+  const file: Record<string, unknown> = {};
+  if (url) file.url = url;
+  if (fileName) file.filename = fileName;
+  if (mediaId) file.media_id = mediaId;
+  return file;
+}
+
+function parseXmlMixedItems(xml: string): Array<Record<string, unknown>> {
+  const mixedBlock = extractXmlTag(xml, "Mixed");
+  if (!mixedBlock) return [];
+
+  const itemBlocks = [
+    ...extractXmlTagAll(mixedBlock, "MsgItem"),
+    ...extractXmlTagAll(mixedBlock, "msg_item"),
+  ];
+  if (itemBlocks.length === 0) return [];
+
+  const items: Array<Record<string, unknown>> = [];
+  for (const itemBlock of itemBlocks) {
+    const itemType = pickFirstNonEmpty(
+      extractXmlTag(itemBlock, "MsgType"),
+      extractXmlTag(itemBlock, "msgtype"),
+      extractXmlTag(itemBlock, "Type")
+    ).toLowerCase();
+    if (!itemType) continue;
+
+    if (itemType === "text") {
+      const text = parseXmlTextPayload(itemBlock);
+      items.push({ msgtype: "text", text: text ?? { content: "" } });
+      continue;
+    }
+
+    if (itemType === "image") {
+      const image = parseXmlImagePayload(itemBlock);
+      if (image) items.push({ msgtype: "image", image });
+      else items.push({ msgtype: "image" });
+      continue;
+    }
+
+    if (itemType === "file") {
+      const file = parseXmlFilePayload(itemBlock);
+      if (file) items.push({ msgtype: "file", file });
+      else items.push({ msgtype: "file" });
+      continue;
+    }
+
+    if (itemType === "voice") {
+      const voice = parseXmlVoicePayload(itemBlock);
+      if (voice) items.push({ msgtype: "voice", voice });
+      else items.push({ msgtype: "voice" });
+      continue;
+    }
+
+    items.push({ msgtype: itemType });
+  }
+
+  return items;
 }
 
 /**
@@ -176,7 +341,7 @@ async function readRequestBody(req: IncomingMessage, maxBytes: number) {
         const trimmed = raw.trim();
         // 企微回调的消息体是 XML 格式：<xml><Encrypt>...</Encrypt></xml>
         if (trimmed.startsWith("<")) {
-          const encrypt = extractXmlTag(trimmed, "Encrypt");
+          const encrypt = pickFirstNonEmpty(extractXmlTag(trimmed, "Encrypt"));
           if (encrypt) {
             resolve({ ok: true, value: { Encrypt: encrypt }, raw });
           } else {
@@ -306,15 +471,34 @@ function parseWecomPlainMessage(raw: string): WecomInboundMessage {
  * </xml>
  */
 function parseWecomXmlMessage(xml: string): WecomInboundMessage {
-  const msgtype = (extractXmlTag(xml, "MsgType") ?? "").toLowerCase();
-  const chattype = (extractXmlTag(xml, "ChatType") ?? "").toLowerCase();
-  const chatid = extractXmlTag(xml, "ChatId") ?? "";
-  const msgid = extractXmlTag(xml, "MsgId") ?? "";
-  const webhookUrl = extractXmlTag(xml, "WebhookUrl") ?? "";
+  const msgtype = pickFirstNonEmpty(
+    extractXmlTag(xml, "MsgType"),
+    extractXmlTag(xml, "msgtype")
+  ).toLowerCase();
+  const chattype = pickFirstNonEmpty(
+    extractXmlTag(xml, "ChatType"),
+    extractXmlTag(xml, "chattype")
+  ).toLowerCase();
+  const chatid = pickFirstNonEmpty(
+    extractXmlTag(xml, "ChatId"),
+    extractXmlTag(xml, "chatid")
+  );
+  const msgid = pickFirstNonEmpty(
+    extractXmlTag(xml, "MsgId"),
+    extractXmlTag(xml, "msgid")
+  );
+  const webhookUrl = pickFirstNonEmpty(
+    extractXmlTag(xml, "WebhookUrl"),
+    extractXmlTag(xml, "response_url")
+  );
 
   // 提取发送者信息：<From><UserId>xxx</UserId></From>
   const fromBlock = extractXmlTag(xml, "From") ?? "";
-  const userid = extractXmlTag(fromBlock, "UserId") ?? "";
+  const userid = pickFirstNonEmpty(
+    extractXmlTag(fromBlock, "UserId"),
+    extractXmlTag(xml, "FromUserName"),
+    extractXmlTag(xml, "UserId")
+  );
 
   // 构建基础消息对象
   const result: Record<string, unknown> = {
@@ -332,27 +516,41 @@ function parseWecomXmlMessage(xml: string): WecomInboundMessage {
 
   // 根据消息类型提取对应内容
   if (msgtype === "text") {
-    const textBlock = extractXmlTag(xml, "Text") ?? "";
-    const content = extractXmlTag(textBlock, "Content") ?? "";
-    result.text = { content };
+    result.text = parseXmlTextPayload(xml) ?? { content: "" };
   } else if (msgtype === "voice") {
-    const voiceBlock = extractXmlTag(xml, "Voice") ?? "";
-    const content = extractXmlTag(voiceBlock, "Content") ?? "";
-    result.voice = { content };
+    result.voice = parseXmlVoicePayload(xml) ?? { content: "" };
+  } else if (msgtype === "image") {
+    const image = parseXmlImagePayload(xml);
+    if (image) result.image = image;
+  } else if (msgtype === "file") {
+    const file = parseXmlFilePayload(xml);
+    if (file) result.file = file;
   } else if (msgtype === "stream") {
     const streamBlock = extractXmlTag(xml, "Stream") ?? "";
-    const id = extractXmlTag(streamBlock, "Id") ?? "";
+    const id = pickFirstNonEmpty(
+      extractXmlTag(streamBlock, "Id"),
+      extractXmlTag(xml, "StreamId"),
+      extractXmlTag(xml, "Id")
+    );
     result.stream = { id };
   } else if (msgtype === "event") {
     const eventBlock = extractXmlTag(xml, "Event") ?? "";
-    const eventtype = extractXmlTag(eventBlock, "EventType") ?? "";
+    const eventtype = pickFirstNonEmpty(
+      extractXmlTag(eventBlock, "EventType"),
+      extractXmlTag(xml, "EventType"),
+      extractXmlTag(xml, "Event")
+    );
     result.event = { eventtype };
   } else if (msgtype === "mixed") {
-    // mixed 类型暂按 text 方式提取可能的文本内容
-    const textBlock = extractXmlTag(xml, "Text") ?? "";
-    const content = extractXmlTag(textBlock, "Content") ?? "";
-    if (content) {
-      result.text = { content };
+    const mixedItems = parseXmlMixedItems(xml);
+    if (mixedItems.length > 0) {
+      result.mixed = { msg_item: mixedItems };
+    }
+
+    // 兼容某些 mixed 载荷只有一个 Text 节点时的兜底字段
+    const text = parseXmlTextPayload(xml);
+    if (text) {
+      result.text = text;
     }
   }
 
