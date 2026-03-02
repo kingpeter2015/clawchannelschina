@@ -137,10 +137,26 @@ function jsonOk(res: ServerResponse, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-async function readJsonBody(req: IncomingMessage, maxBytes: number) {
+/**
+ * 从 XML 字符串中提取指定标签的文本内容。
+ * 支持 CDATA 和普通文本两种形式。
+ */
+function extractXmlTag(xml: string, tag: string): string | undefined {
+  // 匹配 <Tag><![CDATA[内容]]></Tag> 或 <Tag>内容</Tag>
+  const re = new RegExp(`<${tag}><!\\[CDATA\\[([\\s\\S]*?)\\]\\]></${tag}>|<${tag}>([\\s\\S]*?)</${tag}>`);
+  const m = xml.match(re);
+  if (!m) return undefined;
+  return m[1] ?? m[2] ?? undefined;
+}
+
+/**
+ * 读取请求体并解析为统一的 Record 对象。
+ * 同时支持 JSON 和 XML（企微回调标准格式）两种格式。
+ */
+async function readRequestBody(req: IncomingMessage, maxBytes: number) {
   const chunks: Buffer[] = [];
   let total = 0;
-  return await new Promise<{ ok: boolean; value?: unknown; error?: string }>((resolve) => {
+  return await new Promise<{ ok: boolean; value?: unknown; raw?: string; error?: string }>((resolve) => {
     req.on("data", (chunk: Buffer) => {
       total += chunk.length;
       if (total > maxBytes) {
@@ -157,7 +173,18 @@ async function readJsonBody(req: IncomingMessage, maxBytes: number) {
           resolve({ ok: false, error: "empty payload" });
           return;
         }
-        resolve({ ok: true, value: JSON.parse(raw) as unknown });
+        const trimmed = raw.trim();
+        // 企微回调的消息体是 XML 格式：<xml><Encrypt>...</Encrypt></xml>
+        if (trimmed.startsWith("<")) {
+          const encrypt = extractXmlTag(trimmed, "Encrypt");
+          if (encrypt) {
+            resolve({ ok: true, value: { Encrypt: encrypt }, raw });
+          } else {
+            resolve({ ok: false, raw, error: "xml body missing Encrypt tag" });
+          }
+          return;
+        }
+        resolve({ ok: true, value: JSON.parse(raw) as unknown, raw });
       } catch (err) {
         resolve({ ok: false, error: err instanceof Error ? err.message : String(err) });
       }
@@ -238,12 +265,98 @@ function createStreamId(): string {
   return crypto.randomBytes(16).toString("hex");
 }
 
+/**
+ * 解析解密后的企微消息明文。
+ * 企微群机器人回调的明文是 XML 格式，需要从 XML 中提取各字段映射为 WecomInboundMessage。
+ * 同时兼容 JSON 格式。
+ */
 function parseWecomPlainMessage(raw: string): WecomInboundMessage {
-  const parsed = JSON.parse(raw) as unknown;
-  if (!parsed || typeof parsed !== "object") {
-    return {};
+  const trimmed = raw.trim();
+
+  // XML 格式：企微群机器人回调的标准格式
+  if (trimmed.startsWith("<")) {
+    return parseWecomXmlMessage(trimmed);
   }
-  return parsed as WecomInboundMessage;
+
+  // JSON 格式：兼容其他可能的回调场景
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return {};
+    }
+    return parsed as WecomInboundMessage;
+  } catch {
+    return parseWecomXmlMessage(trimmed);
+  }
+}
+
+/**
+ * 从企微 XML 明文中提取字段，映射为 WecomInboundMessage 对象。
+ *
+ * 企微群机器人回调 XML 结构示例：
+ * <xml>
+ *   <From><UserId>xxx</UserId><Name>xxx</Name><Alias>xxx</Alias></From>
+ *   <WebhookUrl>http://...</WebhookUrl>
+ *   <ChatId>xxx</ChatId>
+ *   <GetChatInfoUrl>http://...</GetChatInfoUrl>
+ *   <MsgId>xxx</MsgId>
+ *   <ChatType>group</ChatType>
+ *   <MsgType>text</MsgType>
+ *   <Text><Content>消息内容</Content></Text>
+ * </xml>
+ */
+function parseWecomXmlMessage(xml: string): WecomInboundMessage {
+  const msgtype = (extractXmlTag(xml, "MsgType") ?? "").toLowerCase();
+  const chattype = (extractXmlTag(xml, "ChatType") ?? "").toLowerCase();
+  const chatid = extractXmlTag(xml, "ChatId") ?? "";
+  const msgid = extractXmlTag(xml, "MsgId") ?? "";
+  const webhookUrl = extractXmlTag(xml, "WebhookUrl") ?? "";
+
+  // 提取发送者信息：<From><UserId>xxx</UserId></From>
+  const fromBlock = extractXmlTag(xml, "From") ?? "";
+  const userid = extractXmlTag(fromBlock, "UserId") ?? "";
+
+  // 构建基础消息对象
+  const result: Record<string, unknown> = {
+    msgtype,
+    chattype: chattype === "group" ? "group" : "single",
+    chatid,
+    msgid,
+    from: { userid },
+  };
+
+  // 如果有 WebhookUrl，作为 response_url 使用
+  if (webhookUrl) {
+    result.response_url = webhookUrl;
+  }
+
+  // 根据消息类型提取对应内容
+  if (msgtype === "text") {
+    const textBlock = extractXmlTag(xml, "Text") ?? "";
+    const content = extractXmlTag(textBlock, "Content") ?? "";
+    result.text = { content };
+  } else if (msgtype === "voice") {
+    const voiceBlock = extractXmlTag(xml, "Voice") ?? "";
+    const content = extractXmlTag(voiceBlock, "Content") ?? "";
+    result.voice = { content };
+  } else if (msgtype === "stream") {
+    const streamBlock = extractXmlTag(xml, "Stream") ?? "";
+    const id = extractXmlTag(streamBlock, "Id") ?? "";
+    result.stream = { id };
+  } else if (msgtype === "event") {
+    const eventBlock = extractXmlTag(xml, "Event") ?? "";
+    const eventtype = extractXmlTag(eventBlock, "EventType") ?? "";
+    result.event = { eventtype };
+  } else if (msgtype === "mixed") {
+    // mixed 类型暂按 text 方式提取可能的文本内容
+    const textBlock = extractXmlTag(xml, "Text") ?? "";
+    const content = extractXmlTag(textBlock, "Content") ?? "";
+    if (content) {
+      result.text = { content };
+    }
+  }
+
+  return result as WecomInboundMessage;
 }
 
 async function waitForStreamContent(streamId: string, maxWaitMs: number): Promise<void> {
@@ -457,14 +570,17 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
     }
 
     const target = targets.find((candidate) => {
-      if (!candidate.account.configured || !candidate.account.token) return false;
-      return verifyWecomSignature({
+      if (!candidate.account.configured || !candidate.account.token) {
+        return false;
+      }
+      const ok = verifyWecomSignature({
         token: candidate.account.token,
         timestamp,
         nonce,
         encrypt: echostr,
         signature,
       });
+      return ok;
     });
 
     if (!target || !target.account.encodingAESKey) {
@@ -505,12 +621,14 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
     return true;
   }
 
-  const body = await readJsonBody(req, 1024 * 1024);
+  const body = await readRequestBody(req, 1024 * 1024);
   if (!body.ok) {
     res.statusCode = body.error === "payload too large" ? 413 : 400;
     res.end(body.error ?? "invalid payload");
     return true;
   }
+
+  // ===== 调试日志：记录完整的请求体 =====
 
   const record = body.value && typeof body.value === "object" ? (body.value as Record<string, unknown>) : null;
   const encrypt = record ? String(record.encrypt ?? record.Encrypt ?? "") : "";
@@ -520,15 +638,19 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
     return true;
   }
 
+
   const target = targets.find((candidate) => {
-    if (!candidate.account.token) return false;
-    return verifyWecomSignature({
+    if (!candidate.account.token) {
+      return false;
+    }
+    const ok = verifyWecomSignature({
       token: candidate.account.token,
       timestamp,
       nonce,
       encrypt,
       signature,
     });
+    return ok;
   });
 
   if (!target) {
@@ -558,6 +680,8 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
     return true;
   }
 
+  // ===== 调试日志：记录解密后的明文 =====
+
   const msg = parseWecomPlainMessage(plain);
   target.statusSink?.({ lastInboundAt: Date.now() });
 
@@ -577,15 +701,13 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
           finished: true,
           content: "",
         });
-    jsonOk(
-      res,
-      buildEncryptedJsonReply({
-        account: target.account,
-        plaintextJson: reply,
-        nonce,
-        timestamp,
-      })
-    );
+    const encReply = buildEncryptedJsonReply({
+      account: target.account,
+      plaintextJson: reply,
+      nonce,
+      timestamp,
+    });
+    jsonOk(res, encReply);
     return true;
   }
 
@@ -753,15 +875,13 @@ export async function handleWecomWebhookRequest(req: IncomingMessage, res: Serve
     ? buildStreamReplyFromState(state)
     : buildStreamPlaceholderReply(streamId);
 
-  jsonOk(
-    res,
-    buildEncryptedJsonReply({
-      account: target.account,
-      plaintextJson: initialReply,
-      nonce,
-      timestamp,
-    })
-  );
+  const encReply = buildEncryptedJsonReply({
+    account: target.account,
+    plaintextJson: initialReply,
+    nonce,
+    timestamp,
+  });
+  jsonOk(res, encReply);
 
   return true;
 }
