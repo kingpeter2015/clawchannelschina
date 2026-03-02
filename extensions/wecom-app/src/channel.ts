@@ -405,17 +405,19 @@ export const wecomAppPlugin = {
       messageId: string;
       error?: Error;
     }> => {
-      const account = resolveWecomAppAccount({ cfg: params.cfg, accountId: params.accountId });
-
-      if (!account.canSendActive) {
-        return {
-          channel: "wecom-app",
-          ok: false,
-          messageId: "",
-          error: new Error("Account not configured for active sending (missing corpId, corpSecret, or agentId)"),
-        };
-      }
-
+    sendText: async (params: {
+      cfg: PluginConfig;
+      accountId?: string;
+      to: string;
+      text: string;
+      options?: { markdown?: boolean };
+    }): Promise<{
+      channel: string;
+      ok: boolean;
+      messageId: string;
+      error?: Error;
+    }> => {
+      // 1. 先解析 target
       const parsed = parseDirectTarget(params.to);
       if (!parsed) {
         return {
@@ -425,8 +427,40 @@ export const wecomAppPlugin = {
           error: new Error(`Unsupported target for WeCom App: ${params.to}`),
         };
       }
+
+      // 2. 使用 parsed.accountId（优先）或 params.accountId（回退）
+      const accountId = parsed.accountId ?? params.accountId;
+      const account = resolveWecomAppAccount({ cfg: params.cfg, accountId });
+
+      // 3. 账号存在性检查（当 accountId 来自 target 时）
+      if (parsed.accountId && !params.cfg.channels?.['wecom-app']?.accounts?.[accountId]) {
+        console.error(`[wecom-app] Account "${accountId}" not found in configuration`);
+        return {
+          channel: 'wecom-app',
+          ok: false,
+          messageId: '',
+          error: new Error(`Account "${accountId}" not configured`),
+        };
+      }
+
+      // 4. 检查发送权限
+      if (!account.canSendActive) {
+        return {
+          channel: "wecom-app",
+          ok: false,
+          messageId: "",
+          error: new Error("Account not configured for active sending (missing corpId, corpSecret, or agentId)"),
+        };
+      }
+
+      // 5. 构建目标
       const target: { userId: string } = { userId: parsed.userId };
 
+      // 6. 日志
+      console.log(`[wecom-app] Account resolved: canSendActive=${account.canSendActive}`);
+      console.log('[wecom-app] Target parsed:', target);
+
+      // 7. 发送（保持 try-catch 不变）
       try {
         const result = await sendWecomAppMessage(account, target, params.text);
         return {
@@ -462,15 +496,39 @@ export const wecomAppPlugin = {
       messageId: string;
       error?: Error;
     }> => {
-      console.log(`[wecom-app] sendMedia called: to=${params.to}, mediaUrl=${params.mediaUrl}`);
+      // 1. 先解析 target
+      const parsed = parseDirectTarget(params.to);
+      if (!parsed) {
+        return {
+          channel: "wecom-app",
+          ok: false,
+          messageId: "",
+          error: new Error(`Unsupported target for WeCom App: ${params.to}`),
+        };
+      }
 
+      // 2. 使用 parsed.accountId（优先）或 params.accountId（回退）
+      const accountId = parsed.accountId ?? params.accountId;
       const account = resolveWecomAppAccount({
         cfg: params.cfg,
-        accountId: params.accountId,
+        accountId,
       });
 
+      // 3. 账号存在性检查（当 accountId 来自 target 时）
+      if (parsed.accountId && !params.cfg.channels?.['wecom-app']?.accounts?.[accountId]) {
+        console.error(`[wecom-app] Account "${accountId}" not found in configuration`);
+        return {
+          channel: 'wecom-app',
+          ok: false,
+          messageId: '',
+          error: new Error(`Account "${accountId}" not configured`),
+        };
+      }
+
+      // 4. 日志（只保留一次！）
       console.log(`[wecom-app] Account resolved: canSendActive=${account.canSendActive}`);
 
+      // 5. 检查发送权限
       if (!account.canSendActive) {
         const error = new Error("Account not configured for active sending (missing corpId, corpSecret, or agentId)");
         console.error(`[wecom-app] sendMedia error:`, error.message);
@@ -482,20 +540,13 @@ export const wecomAppPlugin = {
         };
       }
 
-      const parsed = parseDirectTarget(params.to);
-      if (!parsed) {
-        return {
-          channel: "wecom-app",
-          ok: false,
-          messageId: "",
-          error: new Error(`Unsupported target for WeCom App: ${params.to}`),
-        };
-      }
+      // 6. 构建目标
       const target: { userId: string } = { userId: parsed.userId };
 
+      // 7. 日志
       console.log(`[wecom-app] Target parsed:`, target);
 
-      // 3. 检测媒体类型并路由到对应的发送函数
+      // 8. 继续媒体处理（保持不变）
       const mediaType = detectMediaType(params.mediaUrl, params.mimeType);
       console.log(`[wecom-app] Detected media type: ${mediaType}, file: ${params.mediaUrl}`);
 
@@ -562,7 +613,7 @@ export const wecomAppPlugin = {
           result = await downloadAndSendVideo(account, target, params.mediaUrl);
         } else {
           // 文件/其他: 下载 → 上传素材 → 发送
-          // NOTE: 企业微信“文件消息”接口只接收 media_id，客户端经常不展示真实文件名。
+          // NOTE: 企业微信"文件消息"接口只接收 media_id，客户端经常不展示真实文件名。
           // 我们在上传时会尽量带上 filename，但展示层可能仍固定为 file.<ext>。
           // 为了让用户看到真实文件名：如果上游提供了 text/caption，则先补发一条文本说明。
           if (params.text?.trim()) {
@@ -595,7 +646,6 @@ export const wecomAppPlugin = {
           error: err instanceof Error ? err : new Error(String(err)),
         };
       }
-    },
   },
 
   gateway: {
