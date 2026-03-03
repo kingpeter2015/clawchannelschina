@@ -95,6 +95,20 @@
 <details>
 <summary><strong>点击展开更新日志</strong></summary>
 
+### 2026-03-03
+
+- Merge PR #101：`qqbot` 新增多账户能力，覆盖配置、连接管理与令牌缓存。
+- Merge PR #89：修复 `replyFinalOnly=true` 场景下 QQ 工具媒体投递，并支持语音转换。
+- Merge 分支 `pr-105`：修复 WeCom / WeCom App webhook 路由注册，并支持多个 webhook 路径。
+- 发布脚本新增固定版本控制选项，并同步 README 中 WeCom 问题说明。
+
+### 2026-03-02
+
+- Merge PR #96：修复发送文本消息时的账号检查逻辑。
+- Merge PR #95：修复 `wecom-app` 在多账户配置下的消息路由错误。
+- `wecom` 渠道增强 XML 解析能力，支持更多消息类型与 CDATA 处理。
+- 优化 `wecom-app` 消息发送逻辑，提升发送稳定性。
+
 ### 2026-02-28
 
 - 修复企业微信插件异常重启循环问题，提升整体运行稳定性。
