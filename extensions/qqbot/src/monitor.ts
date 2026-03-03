@@ -5,16 +5,15 @@
 import WebSocket from "ws";
 import { createLogger, type Logger } from "./logger.js";
 import { handleQQBotDispatch } from "./bot.js";
-import { QQBotConfigSchema } from "./config.js";
+import {
+  mergeQQBotAccountConfig,
+  DEFAULT_ACCOUNT_ID,
+  type PluginConfig,
+} from "./config.js";
 import { clearTokenCache, getAccessToken, getGatewayUrl } from "./client.js";
-import type { QQBotConfig } from "./types.js";
 
 export interface MonitorQQBotOpts {
-  config?: {
-    channels?: {
-      qqbot?: QQBotConfig;
-    };
-  };
+  config?: PluginConfig;
   runtime?: {
     log?: (msg: string) => void;
     error?: (msg: string) => void;
@@ -47,7 +46,7 @@ let activePromise: Promise<void> | null = null;
 let activeStop: (() => void) | null = null;
 
 export async function monitorQQBotProvider(opts: MonitorQQBotOpts = {}): Promise<void> {
-  const { config, runtime, abortSignal, accountId = "default" } = opts;
+  const { config, runtime, abortSignal, accountId = DEFAULT_ACCOUNT_ID } = opts;
   const logger = createLogger("qqbot", {
     log: runtime?.log,
     error: runtime?.error,
@@ -63,15 +62,13 @@ export async function monitorQQBotProvider(opts: MonitorQQBotOpts = {}): Promise
     throw new Error("QQBot monitor state invalid: active socket without promise");
   }
 
-  const rawCfg = config?.channels?.qqbot;
-  const parsed = rawCfg ? QQBotConfigSchema.safeParse(rawCfg) : null;
-  const qqCfg = parsed?.success ? parsed.data : rawCfg;
+  const qqCfg = config ? mergeQQBotAccountConfig(config, accountId) : undefined;
   if (!qqCfg) {
     throw new Error("QQBot configuration not found");
   }
 
   if (!qqCfg.appId || !qqCfg.clientSecret) {
-    throw new Error("QQBot not configured (missing appId or clientSecret)");
+    throw new Error(`QQBot not configured for account ${accountId} (missing appId or clientSecret)`);
   }
 
   activePromise = new Promise<void>((resolve, reject) => {
