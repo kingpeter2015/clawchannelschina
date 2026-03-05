@@ -21,12 +21,12 @@
   <tr>
     <td width="220" align="center" valign="middle">
       <strong>💗 支持作者</strong><br />
-      <a href="https://openclaw-link.top/">GPT 服务站</a>
+      <a href="https://openaichat.top/">GPT 服务站</a>
     </td>
     <td valign="top">
       OpenClaw 中 ChatGPT 模型随心用：
       国内免翻访问，支持 OpenAI 最新所有模型。<br />
-      地址：<a href="https://openclaw-link.top/">https://openclaw-link.top/</a><br />
+      地址：<a href="https://openaichat.top/">https://openaichat.top/</a><br />
       附赠作者1对1 OpenClaw 咨询服务
     </td>
   </tr>
@@ -567,21 +567,21 @@ flowchart TD
 
 ## 💗 支持我
 
-这是一个公益项目，感谢支持。本项目由我利用休息时间开发维护，未来会持续更新与支持。当前不接受捐助；如希望支持作者，可以去小店支持一下：<a href="https://openclaw-link.top/">https://openclaw-link.top/</a>
+这是一个公益项目，感谢支持。本项目由我利用休息时间开发维护，未来会持续更新与支持。当前不接受捐助；如希望支持作者，可以去小店支持一下：<a href="https://openaichat.top/">https://openaichat.top/</a>
 附赠作者1对1 OpenClaw 咨询服务，购买后，您可以联系社群群主获取使用建议和技术支持。感谢支持~
 
 <table>
   <tr>
     <td width="220" align="center" valign="middle">
       <strong>作者项目</strong><br />
-      <a href="https://openclaw-link.top/">GPT 服务站</a>
+      <a href="https://openaichat.top/">GPT 服务站</a>
     </td>
     <td valign="top">
       在 OpenClaw 中实现 ChatGPT 模型随心用。<br />
       ✅ 无需梯子，国内免翻访问<br />
       ✅ 后台大量官方账号池，随心使用<br />
       ✅ 支持 OpenAI 最新所有模型<br />
-      地址：<a href="https://openclaw-link.top/">https://openclaw-link.top/</a>
+      地址：<a href="https://openaichat.top/">https://openaichat.top/</a>
     </td>
   </tr>
 </table>
