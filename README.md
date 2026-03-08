@@ -46,19 +46,19 @@
      <tr>
       <td>企业微信（智能机器人）</td>
       <td align="center">✅ 可用</td>
-      <td align="center">中等</td>
+      <td align="center">简单</td>
       <td><a href="doc/guides/wecom/configuration.md">企业微信智能机器人配置指南</a></td>
     </tr>
     <tr>
       <td>企业微信（自建应用-可接入微信）</td>
       <td align="center">✅ 可用</td>
-      <td align="center">中等+</td>
+      <td align="center">中等</td>
       <td><a href="doc/guides/wecom-app/configuration.md">企业微信自建应用配置指南</a></td>
     </tr>
     <tr>
       <td>飞书（停止维护）</td>
       <td align="center">✅ 可用</td>
-      <td align="center">中等+</td>
+      <td align="center">中等</td>
       <td>-</td>
     </tr>
 
@@ -73,7 +73,7 @@
 - **【全网首发】钉钉、QQ、企微支持文件接受和发送**
 - **【全网首发】钉钉、QQ、飞书支持定时任务；企微智能机器人长连接支持受限主动发送**
 
-| 功能 | 钉钉 | 飞书 | QQ | 企业微信<br />智能机器人<br />Webhook | 企业微信<br />智能机器人<br />长连接 WS | 企业微信自建应用<br />（可接入普通微信） |
+| 功能 | 钉钉 | 飞书 | QQ | 企业微信<br />智能机器人<br />Webhook | 企业微信<br />智能机器人<br />长连接（无需公网IP） | 企业微信自建应用<br />（可接入普通微信） |
 |------|:----:|:----:|:--:|:------------------:|:------------------:|:----------------:|
 | 文本消息 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Markdown | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
