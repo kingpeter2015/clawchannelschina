@@ -119,6 +119,14 @@ function run(cmd, cwd = root) {
 }
 
 function publishPackage(pkgDir, tag) {
+  const pkg = readJson(path.join(pkgDir, "package.json"));
+  const parsed = parseVersion(pkg.version);
+  if (parsed.hasRevision && tag === "latest") {
+    throw new Error(
+      `Refusing to publish prerelease version ${pkg.version} of ${pkg.name} with tag "latest". ` +
+        'Use "--tag next" or publish a stable x.y.z version.'
+    );
+  }
   run(`npm publish --access public --tag ${tag}`, pkgDir);
 }
 
@@ -140,6 +148,10 @@ function compareVersions(a, b) {
   if (a.major !== b.major) return a.major - b.major;
   if (a.minor !== b.minor) return a.minor - b.minor;
   if (a.patch !== b.patch) return a.patch - b.patch;
+  if (a.hasRevision !== b.hasRevision) {
+    // Stable releases sort after prereleases with the same major.minor.patch.
+    return a.hasRevision ? -1 : 1;
+  }
   return a.revision - b.revision;
 }
 
