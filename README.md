@@ -692,9 +692,9 @@ flowchart TD
 
 **欢迎同学们一起开发~**
 
-<img src="https://github.com/user-attachments/assets/6c112ebf-9f2f-4612-9b71-2297359ae6c0" alt="二维码" width="50%" />
 
-<img src="https://github.com/user-attachments/assets/093a70c0-2c8b-4280-94be-5d0b6cd3c8e2" alt="二维码" width="50%" />
+<img src="https://github.com/user-attachments/assets/7b0fd1d5-9955-4034-bdf6-cdc68e2d4a8d" alt="二维码" width="50%" />
+<img src="https://github.com/user-attachments/assets/6c112ebf-9f2f-4612-9b71-2297359ae6c0" alt="二维码" width="50%" />
 
 
 
