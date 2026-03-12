@@ -41,6 +41,7 @@ function setupSessionRuntime(params?: {
     accountId?: string;
     peer: { kind: string; id: string };
   }) => { sessionKey: string; accountId: string; agentId?: string };
+  finalizeInboundContext?: (ctx: unknown) => unknown;
   dispatchReplyWithBufferedBlockDispatcher?: ReturnType<typeof vi.fn>;
 }) {
   const readSessionUpdatedAt = vi.fn().mockReturnValue(null);
@@ -53,14 +54,17 @@ function setupSessionRuntime(params?: {
       routing: {
         resolveAgentRoute:
           params?.routeResolver ??
-          ((input) => ({
-            sessionKey: "shared-session",
-            accountId: input.accountId ?? "default",
-            agentId: "main",
-          })),
+          ((input) => {
+            const peerKind = input.peer.kind === "dm" ? "direct" : input.peer.kind;
+            return {
+              sessionKey: `agent:main:qqbot:${peerKind}:${String(input.peer.id).toLowerCase()}`,
+              accountId: input.accountId ?? "default",
+              agentId: "main",
+            };
+          }),
       },
       reply: {
-        finalizeInboundContext: (ctx: unknown) => ctx,
+        finalizeInboundContext: params?.finalizeInboundContext ?? ((ctx: unknown) => ctx),
         dispatchReplyWithBufferedBlockDispatcher,
       },
       session: {
@@ -87,6 +91,24 @@ const baseCfg = {
     },
   },
 };
+
+function routeSessionKeyForDirect(senderId: string): string {
+  return `agent:main:qqbot:direct:${senderId.toLowerCase()}`;
+}
+
+function isolatedSessionKey(params: {
+  routeSessionKey: string;
+  accountId: string;
+  senderId: string;
+}): string {
+  const { routeSessionKey, accountId, senderId } = params;
+  const lowerAccountId = accountId.toLowerCase();
+  const lowerSenderId = senderId.toLowerCase();
+  if (/^agent:[^:]+:qqbot:(?:direct|dm):.+$/i.test(routeSessionKey)) {
+    return routeSessionKey.replace(/:(?:direct|dm):.+$/i, `:dm:${lowerAccountId}:${lowerSenderId}`);
+  }
+  return `${routeSessionKey}:dm:${lowerAccountId}:${lowerSenderId}`;
+}
 
 describe("QQBot inbound known-target recording", () => {
   beforeEach(() => {
@@ -343,7 +365,13 @@ describe("QQBot inbound known-target recording", () => {
 
     expect(dispatchReplyWithBufferedBlockDispatcher).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining("session busy; queueing inbound dispatch sessionKey=qqbot:dm:default:u-serial")
+      expect.stringContaining(
+        `session busy; queueing inbound dispatch sessionKey=${isolatedSessionKey({
+          routeSessionKey: "shared-session",
+          accountId: "default",
+          senderId: "u-serial",
+        })}`
+      )
     );
 
     releaseFirstDispatch?.();
@@ -370,6 +398,18 @@ describe("QQBot direct session isolation", () => {
   it("uses per-user direct session keys for different C2C users", async () => {
     const logger = createLogger();
     const sessionRuntime = setupSessionRuntime();
+    const routeSessionKeyOne = routeSessionKeyForDirect("u-100");
+    const routeSessionKeyTwo = routeSessionKeyForDirect("u-200");
+    const isolatedSessionKeyOne = isolatedSessionKey({
+      routeSessionKey: routeSessionKeyOne,
+      accountId: "default",
+      senderId: "u-100",
+    });
+    const isolatedSessionKeyTwo = isolatedSessionKey({
+      routeSessionKey: routeSessionKeyTwo,
+      accountId: "default",
+      senderId: "u-200",
+    });
 
     await handleQQBotDispatch({
       eventType: "C2C_MESSAGE_CREATE",
@@ -405,41 +445,47 @@ describe("QQBot direct session isolation", () => {
 
     expect(sessionRuntime.readSessionUpdatedAt).toHaveBeenNthCalledWith(1, {
       storePath: "memory://qqbot",
-      sessionKey: "qqbot:dm:default:u-100",
+      sessionKey: isolatedSessionKeyOne,
     });
     expect(sessionRuntime.readSessionUpdatedAt).toHaveBeenNthCalledWith(2, {
       storePath: "memory://qqbot",
-      sessionKey: "qqbot:dm:default:u-200",
+      sessionKey: isolatedSessionKeyTwo,
     });
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:default:u-100",
+        sessionKey: isolatedSessionKeyOne,
         updateLastRoute: expect.objectContaining({
-          sessionKey: "qqbot:dm:default:u-100",
+          sessionKey: routeSessionKeyOne,
         }),
       })
     );
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:default:u-200",
+        sessionKey: isolatedSessionKeyTwo,
         updateLastRoute: expect.objectContaining({
-          sessionKey: "qqbot:dm:default:u-200",
+          sessionKey: routeSessionKeyTwo,
         }),
       })
     );
     expect(
       sessionRuntime.dispatchReplyWithBufferedBlockDispatcher.mock.calls[0]?.[0]?.ctx?.SessionKey
-    ).toBe("qqbot:dm:default:u-100");
+    ).toBe(isolatedSessionKeyOne);
     expect(
       sessionRuntime.dispatchReplyWithBufferedBlockDispatcher.mock.calls[1]?.[0]?.ctx?.SessionKey
-    ).toBe("qqbot:dm:default:u-200");
+    ).toBe(isolatedSessionKeyTwo);
   });
 
   it("keeps a stable direct session key for repeated messages from the same user", async () => {
     const logger = createLogger();
     const sessionRuntime = setupSessionRuntime();
+    const routeSessionKey = routeSessionKeyForDirect("u-stable");
+    const stableSessionKey = isolatedSessionKey({
+      routeSessionKey,
+      accountId: "default",
+      senderId: "u-stable",
+    });
 
     await handleQQBotDispatch({
       eventType: "C2C_MESSAGE_CREATE",
@@ -476,22 +522,28 @@ describe("QQBot direct session isolation", () => {
     expect(sessionRuntime.readSessionUpdatedAt).toHaveBeenCalledTimes(2);
     expect(sessionRuntime.readSessionUpdatedAt).toHaveBeenNthCalledWith(1, {
       storePath: "memory://qqbot",
-      sessionKey: "qqbot:dm:default:u-stable",
+      sessionKey: stableSessionKey,
     });
     expect(sessionRuntime.readSessionUpdatedAt).toHaveBeenNthCalledWith(2, {
       storePath: "memory://qqbot",
-      sessionKey: "qqbot:dm:default:u-stable",
+      sessionKey: stableSessionKey,
     });
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:default:u-stable",
+        sessionKey: stableSessionKey,
+        updateLastRoute: expect.objectContaining({
+          sessionKey: routeSessionKey,
+        }),
       })
     );
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:default:u-stable",
+        sessionKey: stableSessionKey,
+        updateLastRoute: expect.objectContaining({
+          sessionKey: routeSessionKey,
+        }),
       })
     );
   });
@@ -555,13 +607,27 @@ describe("QQBot direct session isolation", () => {
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:default:u-same",
+        sessionKey: isolatedSessionKey({
+          routeSessionKey: "shared-direct-session",
+          accountId: "default",
+          senderId: "u-same",
+        }),
+        updateLastRoute: expect.objectContaining({
+          sessionKey: "shared-direct-session",
+        }),
       })
     );
     expect(sessionRuntime.recordInboundSession).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        sessionKey: "qqbot:dm:bot2:u-same",
+        sessionKey: isolatedSessionKey({
+          routeSessionKey: "shared-direct-session",
+          accountId: "bot2",
+          senderId: "u-same",
+        }),
+        updateLastRoute: expect.objectContaining({
+          sessionKey: "shared-direct-session",
+        }),
       })
     );
   });
@@ -703,5 +769,77 @@ describe("QQBot direct session isolation", () => {
     await Promise.all([firstDispatch, secondDispatch]);
 
     expect(maxActiveDispatches).toBe(2);
+  });
+
+  it("keeps canonical reply targets after finalization for direct sessions", async () => {
+    const logger = createLogger();
+    const sessionRuntime = setupSessionRuntime({
+      finalizeInboundContext: (ctx) => ({
+        ...(ctx as Record<string, unknown>),
+        To: "c2c:u-finalized",
+        OriginatingTo: "qqbot:dm:default:u-finalized",
+      }),
+    });
+
+    await handleQQBotDispatch({
+      eventType: "C2C_MESSAGE_CREATE",
+      eventData: {
+        id: "msg-finalized-direct",
+        content: "hello direct",
+        timestamp: 1700000011000,
+        author: {
+          user_openid: "u-finalized",
+          username: "Finalized User",
+        },
+      },
+      cfg: baseCfg,
+      accountId: "default",
+      logger,
+    });
+
+    const dispatchCtx =
+      sessionRuntime.dispatchReplyWithBufferedBlockDispatcher.mock.calls[0]?.[0]?.ctx ?? {};
+    expect(dispatchCtx.To).toBe("user:u-finalized");
+    expect(dispatchCtx.OriginatingTo).toBe("user:u-finalized");
+    expect(sessionRuntime.recordInboundSession).toHaveBeenCalledWith(
+      expect.objectContaining({
+        updateLastRoute: expect.objectContaining({
+          to: "user:u-finalized",
+        }),
+      })
+    );
+  });
+
+  it("keeps canonical group reply targets after finalization", async () => {
+    const logger = createLogger();
+    const sessionRuntime = setupSessionRuntime({
+      finalizeInboundContext: (ctx) => ({
+        ...(ctx as Record<string, unknown>),
+        To: "",
+        OriginatingTo: "",
+      }),
+    });
+
+    await handleQQBotDispatch({
+      eventType: "GROUP_AT_MESSAGE_CREATE",
+      eventData: {
+        id: "msg-finalized-group",
+        content: "hello group",
+        timestamp: 1700000012000,
+        group_openid: "g-finalized",
+        author: {
+          member_openid: "member-finalized",
+          nickname: "Finalized Group User",
+        },
+      },
+      cfg: baseCfg,
+      accountId: "default",
+      logger,
+    });
+
+    const dispatchCtx =
+      sessionRuntime.dispatchReplyWithBufferedBlockDispatcher.mock.calls[0]?.[0]?.ctx ?? {};
+    expect(dispatchCtx.To).toBe("group:g-finalized");
+    expect(dispatchCtx.OriginatingTo).toBe("group:g-finalized");
   });
 });
