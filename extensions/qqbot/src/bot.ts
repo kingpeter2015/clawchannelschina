@@ -333,8 +333,18 @@ async function runSerializedSessionDispatch<T>(
         if (settled) {
           return;
         }
-        settled = true;
-        resolve(await task());
+        try {
+          const result = await task();
+          if (!settled) {
+            settled = true;
+            resolve(result);
+          }
+        } catch (err) {
+          if (!settled) {
+            settled = true;
+            reject(err);
+          }
+        }
       },
       resolve: () => {
         if (settled) {
