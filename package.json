@@ -33,7 +33,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BytePioneer-AI/openclaw-china.git"
+    "url": "https://github.com/kingpeter2015/clawchannelschina.git"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -270,7 +270,7 @@ openclaw plugins update channels
 > ⚠️ **Windows 用户注意**：由于 OpenClaw 存在 Windows 兼容性问题（`spawn npm ENOENT`），npm 安装方式暂不可用，请使用方式二。
 
 ```bash
-git clone https://github.com/BytePioneer-AI/openclaw-china.git
+git clone https://github.com/kingpeter2015/clawchannelschina.git
 cd openclaw-china
 pnpm install
 pnpm build
@@ -621,7 +621,7 @@ npx github:BytePioneer-AI/clawmate
 
 ```bash
 # 克隆仓库
-git clone https://github.com/BytePioneer-AI/openclaw-china.git
+git clone https://github.com/kingpeter2015/clawchannelschina.git
 cd openclaw-china
 
 # 安装依赖并构建

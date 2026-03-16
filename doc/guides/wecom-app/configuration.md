@@ -100,7 +100,7 @@ openclaw config set gateway.bind lan
 > BytePioneer-AI/openclaw-china 版本较新，建议用。
 
 ```bash
-git clone https://github.com/BytePioneer-AI/openclaw-china.git
+git clone https://github.com/kingpeter2015/clawchannelschina.git
 cd openclaw-china
 pnpm install
 pnpm build
