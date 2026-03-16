@@ -1,12 +1,12 @@
 {
   "name": "@clawchannelschina/shared",
-  "version": "2026.3.9-1",
+  "version": "2026.3.12",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@clack/prompts": "^1.1.0"
+    "@clack/prompts": "^1.0.0"
   },
   "scripts": {
     "build": "tsc",
@@ -14,8 +14,8 @@
     "test": "vitest --run"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "vitest": "^2.1.9"
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
   },
   "private": false
 }
