@@ -714,7 +714,7 @@ flowchart TD
     %% 4. 基础设施层 (Rounded Rectangle)
     subgraph SharedLayer [" 基础设施层 (Shared) "]
         direction TB
-        SH("🛠️ @openclaw-china/shared"):::shared
+        SH("🛠️ @clawchannelschina/shared"):::shared
     end
 
     %% --- 核心连接逻辑 ---

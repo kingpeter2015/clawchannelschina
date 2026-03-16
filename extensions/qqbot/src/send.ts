@@ -20,7 +20,7 @@ import {
   isHttpUrl,
   readMedia,
   stripTitleFromUrl,
-} from "@openclaw-china/shared";
+} from "@clawchannelschina/shared";
 import { createRequire } from "node:module";
 import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";

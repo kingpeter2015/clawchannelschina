@@ -4,7 +4,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import crypto from "node:crypto";
 
-import { createLogger, type Logger } from "@openclaw-china/shared";
+import { createLogger, type Logger } from "@clawchannelschina/shared";
 
 import type { ResolvedWecomAppAccount, WecomAppInboundMessage } from "./types.js";
 import type { PluginConfig } from "./config.js";

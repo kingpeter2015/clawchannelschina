@@ -1,4 +1,4 @@
-// @openclaw-china/shared
+// @clawchannelschina/shared
 // 共享工具模块
 
 export * from "./logger/index.js";

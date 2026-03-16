@@ -22,7 +22,7 @@ import {
   downloadToTempFile,
   FileSizeLimitError as SharedFileSizeLimitError,
   MediaTimeoutError,
-} from "@openclaw-china/shared";
+} from "@clawchannelschina/shared";
 import type { Logger } from "./logger.js";
 import * as path from "path";
 import * as fsPromises from "fs/promises";

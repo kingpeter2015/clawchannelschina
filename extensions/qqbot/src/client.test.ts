@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { HttpError } from "@openclaw-china/shared";
+import { HttpError } from "@clawchannelschina/shared";
 
 const mocks = vi.hoisted(() => ({
   httpPost: vi.fn(),
   httpGet: vi.fn(),
 }));
 
-vi.mock("@openclaw-china/shared", async () => {
-  const actual = await vi.importActual<typeof import("@openclaw-china/shared")>(
-    "@openclaw-china/shared"
+vi.mock("@clawchannelschina/shared", async () => {
+  const actual = await vi.importActual<typeof import("@clawchannelschina/shared")>(
+    "@clawchannelschina/shared"
   );
   return {
     ...actual,

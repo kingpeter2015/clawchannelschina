@@ -5,7 +5,7 @@
 
 import { qqbotPlugin, DEFAULT_ACCOUNT_ID } from "./src/channel.js";
 import { setQQBotRuntime, getQQBotRuntime } from "./src/runtime.js";
-import { registerChinaSetupCli, showChinaInstallHint } from "@openclaw-china/shared";
+import { registerChinaSetupCli, showChinaInstallHint } from "@clawchannelschina/shared";
 
 export interface MoltbotPluginApi {
   registerChannel: (opts: { plugin: unknown }) => void;

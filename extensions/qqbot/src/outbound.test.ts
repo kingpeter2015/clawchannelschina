@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { HttpError } from "@openclaw-china/shared";
+import { HttpError } from "@clawchannelschina/shared";
 
 const mocks = vi.hoisted(() => ({
   getAccessToken: vi.fn(),

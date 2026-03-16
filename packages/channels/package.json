@@ -54,18 +54,18 @@
     "clean": "rimraf dist"
   },
   "dependencies": {
-    "@clack/prompts": "^1.0.0",
-    "@openclaw-china/dingtalk": "2026.3.9-1",
-    "@openclaw-china/feishu-china": "2026.3.9-1",
-    "@openclaw-china/qqbot": "2026.3.9-1",
-    "@openclaw-china/shared": "workspace:*",
-    "@openclaw-china/wecom": "2026.3.9-1",
-    "@openclaw-china/wecom-app": "2026.3.9-1"
+    "@clack/prompts": "^1.1.0",
+    "@clawchannelschina/shared": "workspace:*",
+    "@openclaw-china/dingtalk": "workspace:2026.3.9-1",
+    "@openclaw-china/feishu-china": "workspace:2026.3.9-1",
+    "@openclaw-china/qqbot": "workspace:2026.3.9-1",
+    "@openclaw-china/wecom": "workspace:2026.3.9-1",
+    "@openclaw-china/wecom-app": "workspace:2026.3.9-1"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "tsup": "^8.2.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^22.19.15",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "moltbot": ">=0.1.0"

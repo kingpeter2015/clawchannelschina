@@ -10,7 +10,7 @@
 
 import { feishuPlugin, DEFAULT_ACCOUNT_ID } from "./src/channel.js";
 import { setFeishuRuntime } from "./src/runtime.js";
-import { registerChinaSetupCli, showChinaInstallHint } from "@openclaw-china/shared";
+import { registerChinaSetupCli, showChinaInstallHint } from "@clawchannelschina/shared";
 
 /**
  * Moltbot 插件 API 接口

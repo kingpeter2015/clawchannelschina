@@ -158,8 +158,8 @@ openclaw-china/
 
 ```typescript
 // extensions/feishu/src/bot.ts
-import { DmPolicyEngine, GroupPolicyEngine } from "@openclaw-china/shared";
-import { HistoryManager } from "@openclaw-china/shared";
+import { DmPolicyEngine, GroupPolicyEngine } from "@clawchannelschina/shared";
+import { HistoryManager } from "@clawchannelschina/shared";
 
 // 使用共享的策略引擎
 const dmPolicy = new DmPolicyEngine(config.dmPolicy, config.allowFrom);
@@ -307,7 +307,7 @@ channels:
     }
   },
   "dependencies": {
-    "@openclaw-china/shared": "workspace:*",
+    "@clawchannelschina/shared": "workspace:*",
     "@larksuiteoapi/node-sdk": "^1.30.0",
     "zod": "^3.23.0"
   },
@@ -318,7 +318,7 @@ channels:
   "peerDependencies": {
     "moltbot": ">=1.0.0"
   },
-  "bundledDependencies": ["@openclaw-china/shared"]
+  "bundledDependencies": ["@clawchannelschina/shared"]
 }
 ```
 
@@ -359,14 +359,14 @@ channels:
 
 ```bash
 # 克隆仓库
-git clone https://github.com/xxx/openclaw-china.git
-cd openclaw-china
+git clone https://github.com/xxx/clawchannelschina.git
+cd clawchannelschina
 
 # 安装依赖
 pnpm install
 
 # 构建共享包
-pnpm -F @openclaw-china/shared build
+pnpm -F @clawchannelschina/shared build
 
 # 开发某个渠道
 pnpm -F @openclaw-china/feishu-china dev

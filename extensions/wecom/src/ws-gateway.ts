@@ -1,7 +1,7 @@
 import { WSClient, type SendMsgBody, type WsFrame as SdkWsFrame } from "@wecom/aibot-node-sdk";
 
 import type { PluginConfig } from "./config.js";
-import { createLogger, type Logger } from "@openclaw-china/shared";
+import { createLogger, type Logger } from "@clawchannelschina/shared";
 import type { ResolvedWecomAccount } from "./types.js";
 import { dispatchWecomMessage } from "./bot.js";
 import { tryGetWecomRuntime } from "./runtime.js";

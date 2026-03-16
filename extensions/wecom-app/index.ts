@@ -15,7 +15,7 @@ import type { IncomingMessage, ServerResponse } from "http";
 import { wecomAppPlugin, DEFAULT_ACCOUNT_ID } from "./src/channel.js";
 import { setWecomAppRuntime, getWecomAppRuntime } from "./src/runtime.js";
 import { handleWecomAppWebhookRequest } from "./src/monitor.js";
-import { registerChinaSetupCli, showChinaInstallHint } from "@openclaw-china/shared";
+import { registerChinaSetupCli, showChinaInstallHint } from "@clawchannelschina/shared";
 import {
   sendWecomAppMessage,
   sendWecomAppMarkdownMessage,

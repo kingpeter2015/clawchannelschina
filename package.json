@@ -1,5 +1,5 @@
 {
-  "name": "openclaw-china",
+  "name": "clawchannelschina",
   "version": "2026.3.9-1",
   "description": "Moltbot extensions for China IM platforms (DingTalk, WeCom, Feishu, QQ)",
   "private": true,
@@ -11,7 +11,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "build:shared": "pnpm -F @openclaw-china/shared build",
+    "build:shared": "pnpm -F @clawchannelschina/shared build",
     "build:dingtalk": "pnpm -F @openclaw-china/dingtalk build",
     "build:channels": "pnpm -F @openclaw-china/channels build",
     "release:all": "node scripts/release-all.mjs",
@@ -36,16 +36,16 @@
     "url": "https://github.com/kingpeter2015/clawchannelschina.git"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "oxlint": "^0.16.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^22.19.15",
+    "oxlint": "^0.16.12",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.0.0"
   },
   "packageManager": "pnpm@9.0.0",
   "dependencies": {
-    "@openclaw-china/channels": "^2026.3.9-1",
+    "@openclaw-china/channels": "^2026.3.12",
     "dingtalk-stream": "^2.1.4"
   }
 }

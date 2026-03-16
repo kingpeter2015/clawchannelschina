@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Logger } from "@openclaw-china/shared";
+import type { Logger } from "@clawchannelschina/shared";
 import {
   appendQQBotBufferedText,
   evaluateReplyFinalOnlyDelivery,

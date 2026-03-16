@@ -53,7 +53,7 @@ import {
   getQQBotRuntime,
 } from "@openclaw-china/qqbot";
 import qqbotEntry from "@openclaw-china/qqbot";
-import { registerChinaSetupCli, showChinaInstallHint } from "@openclaw-china/shared";
+import { registerChinaSetupCli, showChinaInstallHint } from "@clawchannelschina/shared";
 
 export {
   dingtalkPlugin,

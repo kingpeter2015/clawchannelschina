@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@openclaw-china/shared", () => ({
+vi.mock("@clawchannelschina/shared", () => ({
   registerChinaSetupCli: vi.fn(),
   showChinaInstallHint: vi.fn(),
 }));

@@ -29,7 +29,7 @@ Channels:
   ${channelIds.join(", ")}
 
 Options:
-  --with-shared    Also bump & publish @openclaw-china/shared
+  --with-shared    Also bump & publish @clawchannelschina/shared
   --version        Use a fixed version instead of auto patch bump
   --tag            npm dist-tag to publish with (latest|next, default: latest)
                    Note: x.y.z.w will be normalized to npm semver x.y.z-w
@@ -305,27 +305,27 @@ try {
     dingtalkPkg.version = nextDingtalk;
     dingtalkPkg.private = false;
     dingtalkPkg.dependencies = dingtalkPkg.dependencies ?? {};
-    dingtalkPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    dingtalkPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     feishuPkg.version = nextFeishu;
     feishuPkg.private = false;
     feishuPkg.dependencies = feishuPkg.dependencies ?? {};
-    feishuPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    feishuPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     wecomPkg.version = nextWecom;
     wecomPkg.private = false;
     wecomPkg.dependencies = wecomPkg.dependencies ?? {};
-    wecomPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    wecomPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     wecomAppPkg.version = nextWecomApp;
     wecomAppPkg.private = false;
     wecomAppPkg.dependencies = wecomAppPkg.dependencies ?? {};
-    wecomAppPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    wecomAppPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     qqbotPkg.version = nextQqbot;
     qqbotPkg.private = false;
     qqbotPkg.dependencies = qqbotPkg.dependencies ?? {};
-    qqbotPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    qqbotPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     channelsPkg.version = nextChannels;
     channelsPkg.dependencies = channelsPkg.dependencies ?? {};
@@ -334,7 +334,7 @@ try {
     channelsPkg.dependencies["@openclaw-china/wecom"] = nextWecom;
     channelsPkg.dependencies["@openclaw-china/wecom-app"] = nextWecomApp;
     channelsPkg.dependencies["@openclaw-china/qqbot"] = nextQqbot;
-    channelsPkg.dependencies["@openclaw-china/shared"] = nextShared;
+    channelsPkg.dependencies["@clawchannelschina/shared"] = nextShared;
 
     writeJson(sharedPath, sharedPkg);
     writeJson(dingtalkPath, dingtalkPkg);
@@ -344,7 +344,7 @@ try {
     writeJson(qqbotPath, qqbotPkg);
     writeJson(channelsPath, channelsPkg);
 
-    run("pnpm -F @openclaw-china/shared build");
+    run("pnpm -F @clawchannelschina/shared build");
     run("pnpm -F @openclaw-china/dingtalk build");
     run("pnpm -F @openclaw-china/feishu-china build");
     run("pnpm -F @openclaw-china/wecom build");
@@ -408,18 +408,18 @@ try {
     targetPkg.version = nextTarget;
     targetPkg.private = false;
     targetPkg.dependencies = targetPkg.dependencies ?? {};
-    targetPkg.dependencies["@openclaw-china/shared"] = sharedVersionToUse;
+    targetPkg.dependencies["@clawchannelschina/shared"] = sharedVersionToUse;
 
     channelsPkg.version = nextChannels;
     channelsPkg.dependencies = channelsPkg.dependencies ?? {};
     channelsPkg.dependencies[targetPkg.name] = nextTarget;
-    channelsPkg.dependencies["@openclaw-china/shared"] = sharedVersionToUse;
+    channelsPkg.dependencies["@clawchannelschina/shared"] = sharedVersionToUse;
 
     writeJson(target.path, targetPkg);
     writeJson(channelsPath, channelsPkg);
 
     if (options.withShared) {
-      run("pnpm -F @openclaw-china/shared build");
+      run("pnpm -F @clawchannelschina/shared build");
     }
     run(`pnpm -F ${targetPkg.name} build`);
     run("pnpm -F @openclaw-china/channels build");
@@ -433,24 +433,24 @@ try {
 } finally {
   // Restore workspace dependencies for local development
   if (originalDingtalk.dependencies) {
-    originalDingtalk.dependencies["@openclaw-china/shared"] =
-      originalDingtalk.dependencies["@openclaw-china/shared"] ?? "workspace:*";
+    originalDingtalk.dependencies["@clawchannelschina/shared"] =
+      originalDingtalk.dependencies["@clawchannelschina/shared"] ?? "workspace:*";
   }
   if (originalFeishu.dependencies) {
-    originalFeishu.dependencies["@openclaw-china/shared"] =
-      originalFeishu.dependencies["@openclaw-china/shared"] ?? "workspace:*";
+    originalFeishu.dependencies["@clawchannelschina/shared"] =
+      originalFeishu.dependencies["@clawchannelschina/shared"] ?? "workspace:*";
   }
   if (originalWecom.dependencies) {
-    originalWecom.dependencies["@openclaw-china/shared"] =
-      originalWecom.dependencies["@openclaw-china/shared"] ?? "workspace:*";
+    originalWecom.dependencies["@clawchannelschina/shared"] =
+      originalWecom.dependencies["@clawchannelschina/shared"] ?? "workspace:*";
   }
   if (originalWecomApp.dependencies) {
-    originalWecomApp.dependencies["@openclaw-china/shared"] =
-      originalWecomApp.dependencies["@openclaw-china/shared"] ?? "workspace:*";
+    originalWecomApp.dependencies["@clawchannelschina/shared"] =
+      originalWecomApp.dependencies["@clawchannelschina/shared"] ?? "workspace:*";
   }
   if (originalQqbot.dependencies) {
-    originalQqbot.dependencies["@openclaw-china/shared"] =
-      originalQqbot.dependencies["@openclaw-china/shared"] ?? "workspace:*";
+    originalQqbot.dependencies["@clawchannelschina/shared"] =
+      originalQqbot.dependencies["@clawchannelschina/shared"] ?? "workspace:*";
   }
   if (originalChannels.dependencies) {
     originalChannels.dependencies["@openclaw-china/dingtalk"] =

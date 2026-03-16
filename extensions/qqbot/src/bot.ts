@@ -21,7 +21,7 @@ import {
   pruneInboundMediaDir,
   stripTitleFromUrl,
   transcribeTencentFlash,
-} from "@openclaw-china/shared";
+} from "@clawchannelschina/shared";
 import {
   resolveQQBotASRCredentials,
   resolveInboundMediaDir,
